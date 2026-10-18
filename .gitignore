@@ -1,0 +1,9 @@
+# Firmware contains ThingSpeak write keys. Publish the dashboard only.
+*.ino
+*.log
+*.backup.json
+*backup*.json
+_site/
+.env
+.env.*
+.vscode/

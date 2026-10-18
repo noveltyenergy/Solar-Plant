@@ -1,0 +1,39 @@
+name: Publish dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - NEL_Energy_Flow_Dashboard_v13.html
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Prepare dashboard only
+        run: |
+          mkdir _site
+          cp NEL_Energy_Flow_Dashboard_v13.html _site/index.html
+          cp NEL_Energy_Flow_Dashboard_v13.html _site/NEL_Energy_Flow_Dashboard_v13.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
