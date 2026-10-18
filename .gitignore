@@ -7,3 +7,6 @@ _site/
 .env
 .env.*
 .vscode/
+
+# Private environment imports must never be committed.
+*.env

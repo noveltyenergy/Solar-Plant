@@ -1,0 +1,149 @@
+{
+  "schema": "nel-dashboard-backup",
+  "version": 1,
+  "createdAt": "2026-10-18T18:07:36.809Z",
+  "keysIncluded": false,
+  "data": {
+    "plants": [
+      {
+        "id": "plant-1792299929629-3019",
+        "name": "Daffodil International University",
+        "location": "Dhaka, Bangladesh"
+      },
+      {
+        "id": "plant-1792299963470-8753",
+        "name": "Samuda Energy Limited",
+        "location": "Mymonshing, Bangladesh"
+      }
+    ],
+    "inverters": [
+      {
+        "id": "inv-3540878",
+        "name": "Inverter - 6",
+        "plantId": "plant-1792299963470-8753",
+        "channelId": "3540878",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540862",
+        "name": "Inverter 1",
+        "plantId": "plant-1792299963470-8753",
+        "channelId": "3540862",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540901",
+        "name": "Inverter 3",
+        "plantId": "plant-1792299963470-8753",
+        "channelId": "3540901",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540865",
+        "name": "Inverter 5",
+        "plantId": "plant-1792299963470-8753",
+        "channelId": "3540865",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540905",
+        "name": "Inverter 7",
+        "plantId": "plant-1792299963470-8753",
+        "channelId": "3540905",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540907",
+        "name": "Inverter 9",
+        "plantId": "plant-1792299963470-8753",
+        "channelId": "3540907",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540899",
+        "name": "Inverter 2",
+        "plantId": "plant-1792299929629-3019",
+        "channelId": "3540899",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540902",
+        "name": "Inverter 4",
+        "plantId": "plant-1792299929629-3019",
+        "channelId": "3540902",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540906",
+        "name": "Inverter 8",
+        "plantId": "plant-1792299929629-3019",
+        "channelId": "3540906",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      },
+      {
+        "id": "inv-3540909",
+        "name": "Inverter 10",
+        "plantId": "plant-1792299929629-3019",
+        "channelId": "3540909",
+        "readKey": "",
+        "data": null,
+        "timestamp": null
+      }
+    ],
+    "gateways": [
+      {
+        "id": "efg-1792324153455-6453",
+        "name": "Gen & Grid 1",
+        "plantId": "plant-1792299963470-8753",
+        "channelId": "3540910",
+        "mappingVersion": 2,
+        "origin": "unverified",
+        "rememberKey": false,
+        "readKey": "",
+        "reading": null,
+        "lastSuccessAt": null,
+        "lastAttemptAt": null
+      },
+      {
+        "id": "efg-1792338877027-259",
+        "name": "Genset & Grid",
+        "plantId": "plant-1792299929629-3019",
+        "channelId": "3540911",
+        "mappingVersion": 2,
+        "origin": "field",
+        "rememberKey": false,
+        "readKey": "",
+        "reading": null,
+        "lastSuccessAt": null,
+        "lastAttemptAt": null
+      }
+    ],
+    "energySettings": {
+      "pollSeconds": 20,
+      "staleSeconds": 120,
+      "autoConnect": true
+    },
+    "alarmHistory": [],
+    "inverterHistory": {},
+    "meterHistory": {},
+    "chartPlant": "all"
+  }
+}

@@ -518,8 +518,8 @@ function addMultiInverter(){
 async function pollOneFleetChannel(d,generation=multiFleetGeneration){
  const ctrl=new AbortController(),timeout=setTimeout(()=>ctrl.abort(),10000);inverterControllers.add(ctrl);
  try{
-  const query=d.readKey?'?api_key='+encodeURIComponent(d.readKey):'';
-  const response=await fetch('https://api.thingspeak.com/channels/'+encodeURIComponent(d.channelId)+'/feeds/last.json'+query,{cache:'no-store',signal:ctrl.signal});
+
+  const response=await fetch(dashboardFeedUrl(d),{cache:'no-store',signal:ctrl.signal});
   if(!response.ok)throw Error('HTTP '+response.status);
   const feed=await response.json();if(feed?.status&&Number(feed.status)>=400)throw Error('ThingSpeak error '+feed.status);
   const n=v=>v===null||v===undefined||String(v).trim()===''?null:Number(v);
@@ -836,11 +836,11 @@ function efPlantName(g){ return plantRegistry.find(p => p.id === g.plantId)?.nam
 // ---------- persistence ----------
 function efPersist(){
   try{
-    localStorage.setItem(EF_STORE_KEY, JSON.stringify(energyGateways.map(g => ({ id:g.id, name:g.name, plantId:g.plantId, channelId:g.channelId, mappingVersion:g.mappingVersion, reading:g.reading, lastSuccessAt:g.lastSuccessAt, lastAttemptAt:g.lastAttemptAt, origin:g.origin, rememberKey:!!g.rememberKey, readKey:g.rememberKey ? g.readKey : "" }))));
+    localStorage.setItem(EF_STORE_KEY, JSON.stringify(energyGateways.map(g => ({ id:g.id, name:g.name, plantId:g.plantId, channelId:g.channelId, mappingVersion:g.mappingVersion, serverProxy:!!g.serverProxy, reading:g.reading, lastSuccessAt:g.lastSuccessAt, lastAttemptAt:g.lastAttemptAt, origin:g.origin, rememberKey:!!g.rememberKey, readKey:g.rememberKey ? g.readKey : "" }))));
     localStorage.setItem(EF_SETTINGS_KEY, JSON.stringify(efSettings));
   }catch(e){ toast("Could not save energy-flow settings in this browser."); }
 }
-function efHydrate(g){ return { id:g.id, name:g.name, plantId:g.plantId, channelId:String(g.channelId), mappingVersion:g.mappingVersion||1, origin:EF_ORIGIN[g.origin] ? g.origin : "sim", rememberKey:!!g.rememberKey, readKey:g.readKey || "", reading:g.reading&&Number.isFinite(Date.parse(g.reading.timestamp))&&g.reading.fields?g.reading:null, commState:"idle", error:"", lastSuccessAt:g.lastSuccessAt||null, lastAttemptAt:g.lastAttemptAt||null, _q:null }; }
+function efHydrate(g){ return { id:g.id, name:g.name, plantId:g.plantId, channelId:String(g.channelId), mappingVersion:g.mappingVersion||1, serverProxy:!!g.serverProxy, origin:EF_ORIGIN[g.origin] ? g.origin : "sim", rememberKey:!!g.rememberKey, readKey:g.readKey || "", reading:g.reading&&Number.isFinite(Date.parse(g.reading.timestamp))&&g.reading.fields?g.reading:null, commState:"idle", error:"", lastSuccessAt:g.lastSuccessAt||null, lastAttemptAt:g.lastAttemptAt||null, _q:null }; }
 function efRestore(){
   try{
     let arr = JSON.parse(localStorage.getItem(EF_STORE_KEY) || "null");
@@ -864,7 +864,7 @@ function efRestore(){
 // ---------- ThingSpeak polling ----------
 async function efFetchGateway(g, gen){
   const key = g.readKey ? `?api_key=${encodeURIComponent(g.readKey)}` : "";
-  const url = `${EF_API_BASE}/channels/${encodeURIComponent(g.channelId)}/feeds/last.json${key}`;
+  const url = dashboardFeedUrl(g);
   const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 10000); energyControllers.add(ctrl);
   let result;
   try{
@@ -1278,7 +1278,7 @@ addMultiInverter=function(){
   const d=editingInverter;if(!multiFleet.includes(d)||d.plantId!==activePlantId)return;
   if(!name||!/^\d+$/.test(channelId)){toast('Enter a name and a digit-only Channel ID.');return;}
   if(multiFleet.some(x=>x!==d&&x.channelId===channelId)){toast('That channel is already added.');return;}
-  Object.assign(d,{name,channelId,readKey:$('#multiReadKey').value.trim(),monitorStartedAt:channelId===d.channelId?d.monitorStartedAt:Date.now(),status:'pending',data:channelId===d.channelId?d.data:null,timestamp:channelId===d.channelId?d.timestamp:null,error:'Configuration updated; connect to refresh'});
+  Object.assign(d,{name,channelId,serverProxy:channelId===d.channelId&&!!d.serverProxy,readKey:$('#multiReadKey').value.trim(),monitorStartedAt:channelId===d.channelId?d.monitorStartedAt:Date.now(),status:'pending',data:channelId===d.channelId?d.data:null,timestamp:channelId===d.channelId?d.timestamp:null,error:'Configuration updated; connect to refresh'});
   persistMultiFleet();resetDeviceForms();renderMultiRegistry();syncDashboardFromRegistry();toast('Inverter updated.');
  }else{const n=multiFleet.length;baseAddInverter();if(multiFleet.length>n)resetDeviceForms();}
  setDevicePlant();
@@ -1291,7 +1291,7 @@ addEnergyGateway=function(){
   const name=$('#energyGatewayName').value.trim(),channelId=$('#energyGatewayChannel').value.trim();
   if(!name||!/^\d+$/.test(channelId)){toast('Enter a connection name and a digit-only Channel ID.');return;}
   if(energyGateways.some(x=>x!==g&&x.channelId===channelId)||multiFleet.some(d=>d.channelId===channelId)){toast('That channel is already configured.');return;}
-  const updated=efHydrate({mappingVersion:2,id:g.id,plantId:activePlantId,name,channelId,reading:channelId===g.channelId&&g.mappingVersion===2?g.reading:null,lastSuccessAt:channelId===g.channelId?g.lastSuccessAt:null,lastAttemptAt:channelId===g.channelId?g.lastAttemptAt:null,readKey:$('#energyGatewayKey').value.trim(),rememberKey:$('#energyGatewayRemember').checked,origin:$('#energyGatewayOrigin').value});
+  const updated=efHydrate({mappingVersion:2,id:g.id,serverProxy:channelId===g.channelId&&!!g.serverProxy,plantId:activePlantId,name,channelId,reading:channelId===g.channelId&&g.mappingVersion===2?g.reading:null,lastSuccessAt:channelId===g.channelId?g.lastSuccessAt:null,lastAttemptAt:channelId===g.channelId?g.lastAttemptAt:null,readKey:$('#energyGatewayKey').value.trim(),rememberKey:$('#energyGatewayRemember').checked,origin:$('#energyGatewayOrigin').value});
   energyGateways.splice(energyGateways.indexOf(g),1,updated);efPersist();resetDeviceForms();efRenderAll(true);syncEnergyFlowAlarms();toast('Generator / grid connection updated.');
  }else{const n=energyGateways.length;baseAddGateway();if(energyGateways.length>n){resetDeviceForms();renderPlantRegistry();}}
  setDevicePlant();
@@ -1656,7 +1656,7 @@ function makeDashboardBackup(includeKeys = false) {
   return { schema:'nel-dashboard-backup', version:1, createdAt:new Date().toISOString(), keysIncluded:!!includeKeys, data:{
     plants:plantRegistry.map(p => ({...p})),
     inverters:multiFleet.map(d => ({...d, id:d.id || 'inv-' + d.channelId, readKey:includeKeys ? d.readKey || '' : '', status:d.data ? 'saved' : 'pending'})),
-    gateways:energyGateways.map(g => ({id:g.id,name:g.name,plantId:g.plantId,channelId:g.channelId,mappingVersion:g.mappingVersion,origin:g.origin,rememberKey:!!g.rememberKey,readKey:includeKeys ? g.readKey || '' : '',reading:g.reading,lastSuccessAt:g.lastSuccessAt,lastAttemptAt:g.lastAttemptAt})),
+    gateways:energyGateways.map(g => ({id:g.id,name:g.name,plantId:g.plantId,channelId:g.channelId,mappingVersion:g.mappingVersion,serverProxy:!!g.serverProxy,origin:g.origin,rememberKey:!!g.rememberKey,readKey:includeKeys ? g.readKey || '' : '',reading:g.reading,lastSuccessAt:g.lastSuccessAt,lastAttemptAt:g.lastAttemptAt})),
     energySettings:{...efSettings,autoConnect:false}, alarmHistory:JSON.parse(JSON.stringify(alarmHistory)), inverterHistory:JSON.parse(JSON.stringify(inverterPowerHistory)), meterHistory:JSON.parse(JSON.stringify(meterPowerHistory)), chartPlant:selectedPowerPlant
   }};
 }
@@ -1687,7 +1687,7 @@ function validateDashboardBackup(input) {
     else timestamp=null;
     const channelId=channel(v.channelId,'inverter channel');
     const existing=multiFleet.find(x=>x.channelId===channelId);
-    return {id:id(v.id,'device ID'),name:id(v.name,'inverter name'),plantId:v.plantId,plant:plants.find(p=>p.id===v.plantId).name,channelId,readKey:input.keysIncluded?text(v.readKey||'','inverter key',256):existing?.readKey||'',monitorStartedAt:Number.isFinite(v.monitorStartedAt)?v.monitorStartedAt:Date.now(),data,timestamp,status:data?'saved':'pending',error:'Restored backup; connect for live updates'};
+    return {id:id(v.id,'device ID'),name:id(v.name,'inverter name'),plantId:v.plantId,plant:plants.find(p=>p.id===v.plantId).name,channelId,readKey:input.keysIncluded?text(v.readKey||'','inverter key',256):existing?.readKey||'',serverProxy:!!v.serverProxy,monitorStartedAt:Number.isFinite(v.monitorStartedAt)?v.monitorStartedAt:Date.now(),data,timestamp,status:data?'saved':'pending',error:'Restored backup; connect for live updates'};
   });unique(inverters,'id','device IDs');unique(inverters,'channelId','inverter channels');
   const inverterChannels=new Set(inverters.map(v=>v.channelId));
   const gateways=list(d.gateways,'gateways',1000).map(g=>{
@@ -1696,7 +1696,7 @@ function validateDashboardBackup(input) {
     let reading=null;
     if(g.reading!==null&&g.reading!==undefined){if(!obj(g.reading)||!obj(g.reading.fields))fail('meter reading');const fields={};for(const k of Object.keys(EF_FIELDS)){const f=g.reading.fields[k];if(!obj(f)||!['ok','nodata','invalid'].includes(f.state))fail('meter '+k);fields[k]={state:f.state,value:number(f.value,'meter '+k),...(f.reason?{reason:text(f.reason,'meter reason')}:{} )};if(f.state==='ok'&&f.value===null)fail('meter value missing');}reading={fields,timestamp:date(g.reading.timestamp,'meter timestamp',false),entryId:typeof g.reading.entryId==='number'||typeof g.reading.entryId==='string'?g.reading.entryId:null};}
     const existing=energyGateways.find(x=>x.channelId===channelId);
-    return {id:id(g.id,'gateway ID'),name:id(g.name,'gateway name'),plantId:g.plantId,channelId,mappingVersion:g.mappingVersion,origin:Object.hasOwn(EF_ORIGIN,g.origin)?g.origin:'sim',rememberKey:input.keysIncluded?!!g.rememberKey:!!existing?.rememberKey,readKey:input.keysIncluded?text(g.readKey||'','gateway key',256):existing?.readKey||'',reading,lastSuccessAt:date(g.lastSuccessAt,'last success'),lastAttemptAt:date(g.lastAttemptAt,'last attempt')};
+    return {id:id(g.id,'gateway ID'),name:id(g.name,'gateway name'),plantId:g.plantId,channelId,mappingVersion:g.mappingVersion,origin:Object.hasOwn(EF_ORIGIN,g.origin)?g.origin:'sim',rememberKey:input.keysIncluded?!!g.rememberKey:!!existing?.rememberKey,readKey:input.keysIncluded?text(g.readKey||'','gateway key',256):existing?.readKey||'',serverProxy:!!g.serverProxy,reading,lastSuccessAt:date(g.lastSuccessAt,'last success'),lastAttemptAt:date(g.lastAttemptAt,'last attempt')};
   });unique(gateways,'id','gateway IDs');unique(gateways,'channelId','gateway channels');unique(gateways,'plantId','meter assignments');
   const history=list(d.alarmHistory,'alarm history',100000).map(e=>{
     if(!obj(e)||!['inverter','energy'].includes(e.source)||!['Critical','Warning','Info'].includes(e.severity)||!['Acknowledged','Unacknowledged'].includes(e.state))fail('alarm record');
@@ -1753,4 +1753,50 @@ $('#cancelRestoreBackup').onclick=()=>{pendingDashboardBackup=null;$('#confirmRe
 document.querySelectorAll(".nav[data-page]").forEach(b=>b.onclick=()=>page(b.dataset.page));document.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>page(b.dataset.goto));$("#powerRange").onchange=()=>chart($("#powerChart"),+$("#powerRange").value);$("#overviewSearch").oninput=renderRows;$("#plantFilter").onchange=()=>{renderRows();const name=$("#plantFilter").value,p=plantRegistry.find(x=>x.name===name),ef=$("#energyFlowPlantFilter");if(ef){ef.value=p?p.id:"all";renderEnergyFlow();}renderMultiCards();};["invSearch","statusFilter","brandFilter"].forEach(id=>$("#"+id).addEventListener(id==="invSearch"?"input":"change",renderInv));["alarmSeverity","alarmState"].forEach(id=>$("#"+id).onchange=renderAlarms);
 document.addEventListener("click",e=>{let d=e.target.closest(".detailbtn");if(d)detail(d.dataset.id);let p=e.target.closest(".plantcard");if(p){page("inverters");$("#invSearch").value=plants[+p.dataset.plant].name;renderInv()}let a=e.target.closest(".ack");if(a&&a.dataset.occurrence){acknowledgeAlarmOccurrences([a.dataset.occurrence]);toast("Alarm acknowledged.")}});
 initEnergyFlow();$("#connectEsp32").onclick=connectEsp32;$("#disconnectEsp32").onclick=disconnectEsp32;$("#addPlant").onclick=addPlant;$("#addMultiInverter").onclick=addMultiInverter;$("#connectMultiFleet").onclick=connectMultiFleet;$("#disconnectMultiFleet").onclick=disconnectMultiFleet;$("#clearSavedRegistry").onclick=clearSavedRegistry;renderPlantRegistry();renderMultiRegistry();syncDashboardFromRegistry();try{const savedUrl=localStorage.getItem("nelEsp32Url");if(savedUrl)$("#esp32Url").value=savedUrl;}catch(e){};$("#backInverters").onclick=()=>page("inverters");$("#refresh").onclick=()=>{if(efPolling&&!efBusy){clearTimeout(efTimer);efRunPoll();}if(esp32Timer)pollEsp32();else{pollMultiFleet();renderRows();renderAlarms();toast("Dashboard refreshed from configured inverter channels.")}};$("#exportCsv").onclick=exportInv;$("#invCsv").onclick=exportInv;$("#plantCsv").onclick=()=>csv("nel-demo-plants.csv",[["Plant","Location","AC Power kW","Capacity kW","Daily Energy kWh","Online","Total"],...plants.map(p=>[p.name,p.location,p.power,p.capacity,p.energy,p.online,p.inverters])]);$("#ackAll").onclick=acknowledgeVisibleAlarms;syncDashboardFromRegistry();renderPlants();renderInv();renderAlarms();renderRows();chart($("#powerChart"));
+// Shared website configuration contains device metadata only. Private read keys stay in Netlify.
+function dashboardFeedUrl(device) {
+  if(device.serverProxy) return '/.netlify/functions/telemetry?channel='+encodeURIComponent(device.channelId);
+  const base=device.mappingVersion ? EF_API_BASE : 'https://api.thingspeak.com';
+  return base+'/channels/'+encodeURIComponent(device.channelId)+'/feeds/last.json'+(device.readKey?'?api_key='+encodeURIComponent(device.readKey):'');
+}
+function sharedConfigurationMessage(message, error=false) {
+  let status=$('#sharedConfigurationStatus');
+  if(!status){status=document.createElement('p');status.id='sharedConfigurationStatus';$('#page-settings .heading').after(status);}
+  status.className=error?'sub bad':'sub';status.textContent=message;
+}
+async function loadSharedDashboardConfiguration() {
+  if(!/^https?:$/.test(location.protocol))return;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  try {
+    const result=await fetch('/.netlify/functions/shared-config',{cache:'no-store',signal:controller.signal});
+    if(result.status===404)return; // Local files and GitHub Pages retain their existing configuration.
+    if(!result.ok)throw Error('Shared website setup is incomplete. Import the server environment file in Netlify, then redeploy. Existing saved data is retained.');
+    const payload=await result.json(),shared=validateDashboardBackup(payload);
+    disconnectMultiFleet();disconnectEnergyGateways(true);
+    const oldInverters=multiFleet,oldGateways=energyGateways;
+    const inverterChannels=new Set(shared.inverters.map(d=>d.channelId));
+    const meterChannels=new Set(shared.gateways.map(g=>g.channelId));
+    const sharedPlantIds=new Set(shared.plants.map(p=>p.id));
+    // Retain browser-only devices and readings, while applying the published shared metadata.
+    plantRegistry=[...shared.plants,...plantRegistry.filter(p=>!sharedPlantIds.has(p.id))];
+    multiFleet=shared.inverters.map(d=>{
+      const previous=oldInverters.find(x=>x.channelId===d.channelId);
+      return {...d,...(previous?{data:previous.data,timestamp:previous.timestamp}:{}),readKey:'',serverProxy:true,monitorStartedAt:Date.now(),status:previous?.data?'saved':'pending',error:'Connecting through website server'};
+    }).concat(oldInverters.filter(d=>!inverterChannels.has(d.channelId)&&!meterChannels.has(d.channelId)));
+    energyGateways=shared.gateways.map(g=>{
+      const previous=oldGateways.find(x=>x.channelId===g.channelId);
+      return efHydrate({...g,...(previous?{reading:previous.reading,lastSuccessAt:previous.lastSuccessAt,lastAttemptAt:previous.lastAttemptAt}:{}),readKey:'',rememberKey:false,serverProxy:true});
+    }).concat(oldGateways.filter(g=>!meterChannels.has(g.channelId)&&!inverterChannels.has(g.channelId)&&!sharedPlantIds.has(g.plantId)));
+    efSettings={...shared.energySettings,autoConnect:true};
+    persistPlantRegistry();persistMultiFleet();efPersist();
+    renderPlantRegistry();renderMultiRegistry();syncDashboardFromRegistry();efRenderAll(true);
+    sharedConfigurationMessage('Shared website configuration loaded: '+shared.plants.length+' plants, '+shared.inverters.length+' inverters, '+shared.gateways.length+' meter channels. Read keys remain on the server.');
+    connectMultiFleet();connectEnergyGateways();
+  } catch(error) {
+    sharedConfigurationMessage(error.name==='AbortError'?'Shared configuration timed out. Saved data is retained; reload to retry.':error.message,true);
+    if(!plantRegistry.length)toast('Website configuration is not ready. See Settings for details.');
+  } finally {clearTimeout(timer);}
+}
+loadSharedDashboardConfiguration();
+
 </script></body></html>

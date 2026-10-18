@@ -1,3 +1,8 @@
 [build]
   command = "mkdir -p _site && cp NEL_Energy_Flow_Dashboard_v13.html _site/index.html && cp NEL_Energy_Flow_Dashboard_v13.html _site/NEL_Energy_Flow_Dashboard_v13.html"
   publish = "_site"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = ["netlify/shared-dashboard.json"]

@@ -27,3 +27,7 @@ The public website updates after the Pages deployment succeeds, usually within a
 Plant settings, saved readings, graph history and alarm history are kept in browser storage, separate for each browser and origin. Export a backup from the local dashboard Settings, open the hosted website, and restore that backup there. Private channels need their read keys; include keys in a backup only when transferring through your own device. Backups are never uploaded by the publisher.
 
 ThingSpeak write keys belong in firmware only. `.ino` files are intentionally ignored and are not part of the website. Do not paste API keys or exported backups into the HTML or commit them.
+
+## Shared configuration on Netlify
+
+New browsers can load the published plant/channel list and read telemetry through Netlify Functions. Complete the one-time private environment import in [NETLIFY_SETUP.md](NETLIFY_SETUP.md). Read keys are kept server-side. Browser alarm/graph histories remain local.
